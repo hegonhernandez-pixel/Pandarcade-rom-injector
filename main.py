@@ -2,7 +2,11 @@ import os
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from organizer import PandarcadeCore  # Importamos el motor lógico que acabas de subir
+
+# --- IMPORTACIONES DEL MOTOR LÓGICO Y UTILIDADES ---
+from organizer import PandarcadeCore  # Motor lógico principal
+from detector import SonyFormatDetector as Detector  # Corrección de SonyFormatDetector
+from database import PandarcadeDatabase as DBManager  # Apunta a tu archivo database.py
 
 class PandarcadeInjectorGUI:
     def __init__(self, root):
