@@ -1,148 +1,149 @@
+# main.py
 import os
-import sys
 import threading
+import webbrowser
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from mcgames_builder import PandoraUniversalManager
 
-# --- IMPORTACIONES LOCALES DESDE TU GITHUB ---
-from organizer import PandarcadeCore
-from detector import SonyFormatDetector
-from DBManager import PandarcadeDatabase
-
-class PandarcadeInjectorGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("💥 Pandarcade ROM Injector PRO v1.0 [100% RAW & OFFLINE]")
-        self.root.geometry("680x560")
-        self.root.resizable(False, False)
+class PandarcadeMainWindow:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Universal ROM Injector PRO - Suite de Evaluacion")
+        self.root.geometry("620x510")
+        self.root.configure(bg="#111111")
         
-        # Configuración de estilo visual básico
-        self.style = ttk.Style()
-        self.style.theme_use("clam")
-        
-        # Conectamos los componentes del sistema
-        self.core = PandarcadeCore(self.log)
-        self.detector = SonyFormatDetector(self.log)
-        self.db = PandarcadeDatabase()
-        
-        # Variables de control de rutas
+        self.procesando = False
         self.ruta_origen = tk.StringVar()
         self.ruta_destino = tk.StringVar()
+        self.estado_texto = tk.StringVar(value="Estado: Modo Evaluacion Activo (Limite: 25 juegos por ejecucion)")
         
-        # Creación de los elementos de la ventana
-        self.crear_componentes()
+        self.manager_backend = PandoraUniversalManager(log_callback=self.ag)
+        self.construir_interfaz_principal()
 
-    def crear_componentes(self):
-        main_frame = ttk.Frame(self.root, padding="15 15 15 15")
-        main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        lbl_titulo = ttk.Label(
-            main_frame, 
-            text="PANDARCADE ROM INJECTOR", 
-            font=("Arial", 16, "bold"), 
-            foreground="#2c3e50"
-        )
-        lbl_titulo.pack(pady=(0, 15))
-        
-        # Sección: Selección de Rutas
-        frame_rutas = ttk.LabelFrame(main_frame, text=" Configuración de Rutas ", padding="10 10 10 10")
-        frame_rutas.pack(fill=tk.X, pady=(0, 15))
-        
-        ttk.Label(frame_rutas, text="Carpeta de ROMs (Origen):").grid(row=0, column=0, sticky=tk.W, pady=5)
-        entry_origen = ttk.Entry(frame_rutas, textvariable=self.ruta_origen, width=55)
-        entry_origen.grid(row=0, column=1, padx=5, pady=5)
-        btn_buscar_origen = ttk.Button(frame_rutas, text="Buscar...", command=self.seleccionar_origen)
-        btn_buscar_origen.grid(row=0, column=2, padx=5, pady=5)
-        
-        ttk.Label(frame_rutas, text="Unidad Pandora (Destino):").grid(row=1, column=0, sticky=tk.W, pady=5)
-        entry_destino = ttk.Entry(frame_rutas, textvariable=self.ruta_destino, width=55)
-        entry_destino.grid(row=1, column=1, padx=5, pady=5)
-        btn_buscar_destino = ttk.Button(frame_rutas, text="Buscar...", command=self.seleccionar_destino)
-        btn_buscar_destino.grid(row=1, column=2, padx=5, pady=5)
-        
-        # Sección: Consola Visual
-        frame_consola = ttk.LabelFrame(main_frame, text=" Consola de Operación ", padding="10 10 10 10")
-        frame_consola.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
-        
-        self.consola_texto = tk.Text(
-            frame_consola, 
-            height=12, 
-            wrap=tk.WORD, 
-            background="#1e1e1e", 
-            foreground="#ffffff", 
-            insertbackground="white",
-            font=("Consolas", 10)
-        )
-        self.consola_texto.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.consola_texto.config(state=tk.DISABLED)
-        
-        scroll = ttk.Scrollbar(frame_consola, command=self.consola_texto.yview)
-        scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.consola_texto.config(yscrollcommand=scroll.set)
-        
-        # Botón de Acción
-        self.btn_iniciar = ttk.Button(
-            main_frame, 
-            text="🚀 INICIAR INYECCIÓN MASIVA", 
-            command=self.iniciar_inyeccion
-        )
-        self.btn_iniciar.pack(fill=tk.X, ipady=8)
+    def construir_interfaz_principal(self):
+        tk.Label(
+            self.root, text="UNIVERSAL ROM INJECTOR PRO", 
+            font=("Arial", 14, "bold"), fg="#2ecc71", bg="#111111"
+        ).pack(pady=15)
 
-    def log(self, mensaje):
-        if hasattr(self, 'consola_texto') and self.consola_texto:
-            self.consola_texto.config(state=tk.NORMAL)
-            self.consola_texto.insert(tk.END, f"{mensaje}\n")
-            self.consola_texto.see(tk.END)
-            self.consola_texto.config(state=tk.DISABLED)
+        # Botón 1: Origen
+        frame_orig = tk.Frame(self.root, bg="#111111")
+        frame_orig.pack(pady=6, fill='x', padx=35)
+        tk.Entry(frame_orig, textvariable=self.ruta_origen, width=48, bg="#222222", fg="white", insertbackground="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(frame_orig, text="Carpeta Origen...", command=self._buscar_origen, bg="#333333", fg="white", width=15).pack(side=tk.LEFT)
+
+        # Botón 2: Destino
+        frame_dest = tk.Frame(self.root, bg="#111111")
+        frame_dest.pack(pady=6, fill='x', padx=35)
+        tk.Entry(frame_dest, textvariable=self.ruta_destino, width=48, bg="#222222", fg="white", insertbackground="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(frame_dest, text="Unidad SD/USB...", command=self._buscar_destino, bg="#333333", fg="white", width=15).pack(side=tk.LEFT)
+
+        # Estado en pantalla
+        tk.Label(self.root, textvariable=self.estado_texto, fg="#f1c40f", bg="#111111", font=("Arial", 9, "bold")).pack(pady=8)
+
+        # Barra de progreso
+        self.progreso = ttk.Progressbar(self.root, orient="horizontal", length=480, mode="indeterminate")
+        self.progreso.pack(pady=5)
+
+        # Monitor de actividad sanitizado
+        tk.Label(self.root, text="Monitor de Inyeccion Activo:", fg="#888888", bg="#111111", font=("Arial", 8)).pack(anchor="w", padx=45)
+        self.txt_consola = tk.Text(self.root, height=7, width=68, bg="#000000", fg="#39ff14", font=("CourierNew", 9))
+        self.txt_consola.pack(pady=5)
+        self.txt_consola.config(state="disabled")
+
+        # Link Comercial Seguro (Sin marcas comerciales)
+        self.lbl_comprar = tk.Label(
+            self.root, 
+            text="🔒 Desbloquea inyecciones ilimitadas para tus consolas arcade de forma inmediata", 
+            fg="#3498db", bg="#111111", font=("Arial", 8, "underline", "bold"), cursor="hand2"
+        )
+        self.lbl_comprar.pack(pady=5)
+        self.lbl_comprar.bind("<Button-1>", lambda e: webbrowser.open("https://tu-sitio-web-o-tienda.com"))
+
+        # Botón Ejecutar
+        self.btn_ejecutar = tk.Button(
+            self.root, text="PROCESAR, OPTIMIZAR E INDEXAR SISTEMAS", 
+            command=self.lanzar_backend_hilo, bg="#2ecc71", fg="white", 
+            font=("Arial", 11, "bold"), activebackground="#27ae60", height=2
+        )
+        self.btn_ejecutar.pack(pady=10)
+
+    def ag(self, mensaje_crudo):
+        """[AGENTE DE LOGS ANTI-COPYRIGHT]"""
+        # Filtro estricto de strings comerciales por si vienen en el nombre del archivo
+        mensaje_limpio = mensaje_crudo.replace("playstation", "PSX").replace("sony", "SYS").replace("PlayStation", "PSX")
+        
+        if "Inyectando:" in mensaje_limpio:
+            archivo = mensaje_limpio.split(":")[-1].strip()
+            mensaje_salida = f"✨ Optimizando e Inyectando juego: {archivo}"
+        elif "Límite" in mensaje_limpio or "Demo" in mensaje_limpio:
+            mensaje_salida = "❌ [LOCK] Cantidad maxima de evaluacion superada."
         else:
-            print(mensaje)
+            mensaje_salida = mensaje_limpio
+            
+        self.txt_consola.config(state="normal")
+        self.txt_consola.insert(tk.END, f"> {mensaje_salida}\n")
+        self.txt_consola.see(tk.END)
+        self.txt_consola.config(state="disabled")
 
-    def seleccionar_origen(self):
-        carpeta = filedialog.askdirectory(title="Selecciona la carpeta de tus juegos")
-        if carpeta:
-            self.ruta_origen.set(carpeta)
-            self.log(f"📂 Origen configurado: {carpeta}")
+    def _buscar_origen(self):
+        if self.procesando: return
+        ruta = filedialog.askdirectory(title="Selecciona la carpeta origen con tus ROMs")
+        if ruta: self.ruta_origen.set(ruta)
 
-    def seleccionar_destino(self):
-        carpeta = filedialog.askdirectory(title="Selecciona la unidad de tu Pandora Box")
-        if carpeta:
-            self.ruta_destino.set(carpeta)
-            self.log(f"💾 Destino configurado: {carpeta}")
+    def _buscar_destino(self):
+        if self.procesando: return
+        ruta = filedialog.askdirectory(title="Selecciona la unidad destino (SD/USB)")
+        if ruta: self.ruta_destino.set(ruta)
 
-    def iniciar_inyeccion(self):
-        origen = self.ruta_origen.get()
-        destino = self.ruta_destino.get()
-
-        if not origen or not os.path.exists(origen):
-            messagebox.showerror("Error", "⚠️ Selecciona una carpeta de origen válida.")
+    def lanzar_backend_hilo(self):
+        orig = self.ruta_origen.get()
+        dest = self.ruta_destino.get()
+        
+        if not orig or not dest:
+            messagebox.showwarning("Datos Incompletos", "Por favor, configure las rutas de Origen y Destino primero.")
             return
 
-        if not destino or not os.path.exists(destino):
-            messagebox.showerror("Error", "⚠️ Selecciona la ruta de tu tarjeta Pandora Box.")
-            return
+        self.procesando = True
+        self.btn_ejecutar.config(state="disabled", bg="#7f8c8d")
+        self.progreso.start(10)
+        self.estado_texto.set("Estado: Generando estructuras de evaluacion...")
+        
+        self.txt_consola.config(state="normal")
+        self.txt_consola.delete("1.0", tk.END)
+        self.txt_consola.config(state="disabled")
 
-        self.btn_iniciar.config(state=tk.DISABLED)
-        self.log("🚀 Iniciando el proceso de inyección de ROMs...")
-
-        # Hilo secundario para evitar bloqueos de la GUI
-        hilo = threading.Thread(target=self._proceso_segundo_plano, args=(origen, destino), daemon=True)
+        hilo = threading.Thread(target=self._proceso_fondo, args=(orig, dest), daemon=True)
         hilo.start()
 
-    def _proceso_segundo_plano(self, origen, destino):
-        try:
-            resultado = self.core.clasificar_y_preparar(origen, destino)
-            if resultado:
-                self.log("🎉 ¡Proceso finalizado con éxito!")
-                messagebox.showinfo("Éxito", "¡Juegos inyectados correctamente!")
-            else:
-                self.log("❌ Hubo un inconveniente durante la clasificación.")
-        except Exception as e:
-            self.log(f"💥 Error crítico: {str(e)}")
-            messagebox.showerror("Error Crítico", str(e))
-        finally:
-            self.btn_iniciar.config(state=tk.NORMAL)
+    def _proceso_fondo(self, orig, dest):
+        resultado = self.manager_backend.purgar_y_extraer_en_crudo(orig, dest)
+        self.progreso.stop()
+        
+        if resultado == "limite_demo":
+            self.estado_texto.set("⚠️ VERSION DEMO BLOQUEADA. Requiere activacion.")
+            self.lbl_comprar.config(fg="#e74c3c")
+            messagebox.showwarning(
+                "Limite de Evaluacion", 
+                "Se han procesado e indexado los primeros 25 juegos con exito.\n\n"
+                "Para procesar el resto de tu catalogo sin restricciones, por favor adquiere la clave de activacion Pro o reinicia el software."
+            )
+            self.procesando = True 
+            
+        elif resultado == "exito":
+            self.estado_texto.set("Estado: ¡Sistemas indexados correctamente!")
+            messagebox.showinfo("Inyeccion Completa", "El lote reducido se completo con exito. Archivos TXT y XML listos.")
+            self.procesando = False
+            self.btn_ejecutar.config(state="normal", bg="#2ecc71")
+        else:
+            self.estado_texto.set("Estado: No se encontraron archivos nuevos.")
+            self.procesando = False
+            self.btn_ejecutar.config(state="normal", bg="#2ecc71")
+
+    def iniciar_programa(self):
+        self.root.mainloop()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = PandarcadeInjectorGUI(root)
-    root.mainloop()
+    app = PandarcadeMainWindow()
+    app.iniciar_programa()
