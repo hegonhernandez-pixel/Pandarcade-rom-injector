@@ -2,12 +2,14 @@ import os
 import shutil
 from database import PandarcadeDatabase
 from detector import SonyFormatDetector
+from mcgames_builder import PandarcadeMcGamesBuilder  # Importamos tu nuevo constructor eMMC
 
 class PandarcadeCore:
     def __init__(self, log_callback):
         self.log = log_callback
         self.db_manager = PandarcadeDatabase(log_callback)
         self.sony_detector = SonyFormatDetector(log_callback)
+        self.mcgames_builder = PandarcadeMcGamesBuilder(log_callback)  # Inicializamos el constructor
         
         # Diccionario maestro de fabricantes
         self.MAPA_EMULADORES = {
@@ -121,7 +123,7 @@ class PandarcadeCore:
         return True
 
     def clasificar_e_inyectar_db(self, ruta_txt, ruta_origen_zips, raiz_destino_usb):
-        """Clasifica las ROMs en crudo y genera la base de datos SQL limpia en la USB"""
+        """Clasifica las ROMs, genera la base de datos SQL externa Y compila la estructura mcgames eMMC"""
         if not os.path.exists(ruta_txt) or not os.path.exists(ruta_origen_zips):
             self.log("❌ Error: Estructura de archivos de texto o ruta de origen incompleta.")
             return False
@@ -140,8 +142,8 @@ class PandarcadeCore:
                 if ".zip" in linea.lower() and "identified as" in linea.lower():
                     try:
                         partes = linea.split(" - ")
-                        nombre_zip = partes[0].strip()
-                        detalles = partes[1].lower() if len(partes) > 1 else linea.lower()
+                        nombre_zip = partes.strip()
+                        detalles = partes.lower() if len(partes) > 1 else linea_lower
                         
                         ruta_archivo_origen = os.path.join(ruta_origen_zips, nombre_zip)
                         
@@ -152,7 +154,7 @@ class PandarcadeCore:
                             if "identified as" in detalles:
                                 sub_partes = detalles.split("identified as")
                                 if len(sub_partes) > 1:
-                                    titulo_bonito = sub_partes[1].split(" - ")[0].replace("classics", "").strip().title()
+                                    titulo_bonito = sub_partes.split(" - ").replace("classics", "").strip().title()
 
                             for fabricante, carpeta in self.MAPA_EMULADORES.items():
                                 if fabricante in detalles:
@@ -167,15 +169,15 @@ class PandarcadeCore:
                             if not os.path.exists(ruta_archivo_destino):
                                 shutil.move(ruta_archivo_origen, ruta_archivo_destino)
                             
-                            # --- AQUÍ QUEDA LA ESTRUCTURA CORREGIDA Y ALINEADA ---
                             diccionario_para_db[nombre_zip] = (titulo_bonito, emulador_destino)
                             organizados += 1
                     except Exception:
                         continue
 
-              # Al terminar el bucle de lectura, se mandan los datos acumulados al constructor SQL
+        # --- INYECCIÓN EN PARALELO (MÉTODO USB EXTERNO Y MÉTODO EMMC INTERNO) ---
         if diccionario_para_db:
+            # 1. Creamos la base de datos externa .db nativa
             self.db_manager.registrar_juegos_en_db(ruta_games_destino, diccionario_para_db)
-            
-        self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")
-        return True
+            # 2. Compilamos de forma automatizada el script instalador para la memoria interna soldada
+            self.mcgames_builder.construir_estructura_mcgames(raiz_destino_usb, diccionario_para_db)
+            self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")return True
