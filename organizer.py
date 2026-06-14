@@ -173,7 +173,9 @@ class PandarcadeCore:
                     except Exception:
                         continue
 
-        # Al terminar el bucle de lectura, se mandan los datos acumulados al constructor SQL
+              # Al terminar el bucle de lectura, se mandan los datos acumulados al constructor SQL
         if diccionario_para_db:
             self.db_manager.registrar_juegos_en_db(ruta_games_destino, diccionario_para_db)
-            self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")return True
+            
+        self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")
+        return True
