@@ -1,125 +1,148 @@
 import os
 import sys
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-# --- IMPORTACIONES DEL MOTOR LÓGICO Y UTILIDADES ---
-from organizer import PandarcadeCore  # Motor lógico principal
-from detector import SonyFormatDetector as Detector  # Corrección de SonyFormatDetector
-from database import PandarcadeDatabase as DBManager  # Apunta a tu archivo database.py
+# --- IMPORTACIONES LOCALES DESDE TU GITHUB ---
+from organizer import PandarcadeCore
+from detector import SonyFormatDetector
+from DBManager import PandarcadeDatabase
 
 class PandarcadeInjectorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("💥 Pandarcade ROM Injector PRO v1.0 [100% RAW & OFFLINE]")
-        self.root.geometry("680x540")
+        self.root.geometry("680x560")
         self.root.resizable(False, False)
         
-         # Conectamos los componentes del sistema
+        # Configuración de estilo visual básico
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+        
+        # Conectamos los componentes del sistema
         self.core = PandarcadeCore(self.log)
         self.detector = SonyFormatDetector(self.log)
-        self.db = PandarcadeDatabase()  # Llama a la clase dentro de DBManager.py
+        self.db = PandarcadeDatabase()
         
         # Variables de control de rutas
         self.ruta_origen = tk.StringVar()
         self.ruta_destino = tk.StringVar()
         
+        # Creación de los elementos de la ventana
         self.crear_componentes()
 
     def crear_componentes(self):
-        # --- TÍTULO PRINCIPAL ---
-        lbl_titulo = tk.Label(self.root, text="PANDARCADE ROM INJECTOR", font=("Arial", 16, "bold"), fg="#1e272e")
-        lbl_titulo.pack(pady=10)
+        main_frame = ttk.Frame(self.root, padding="15 15 15 15")
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        lbl_sub = tk.Label(self.root, text="Optimizador de almacenamiento en crudo para sistemas Arcade", font=("Arial", 10, "italic"), fg="#57606f")
-        lbl_sub.pack(pady=2)
+        lbl_titulo = ttk.Label(
+            main_frame, 
+            text="PANDARCADE ROM INJECTOR", 
+            font=("Arial", 16, "bold"), 
+            foreground="#2c3e50"
+        )
+        lbl_titulo.pack(pady=(0, 15))
         
-        # --- PANEL DE SELECCIÓN DE RUTAS ---
-        frame_rutas = tk.LabelFrame(self.root, text=" 📁 Configuración de Unidades y Directorios ", font=("Arial", 10, "bold"), padx=15, pady=15)
-        frame_rutas.pack(fill="x", padx=20, pady=10)
+        # Sección: Selección de Rutas
+        frame_rutas = ttk.LabelFrame(main_frame, text=" Configuración de Rutas ", padding="10 10 10 10")
+        frame_rutas.pack(fill=tk.X, pady=(0, 15))
         
-        # Origen
-        tk.Label(frame_rutas, text="Memoria de Origen (SD/PC):", font=("Arial", 9, "bold")).grid(row=0, column=0, sticky="w", pady=5)
-        tk.Entry(frame_rutas, textvariable=self.ruta_origen, width=52).grid(row=0, column=1, padx=5)
-        tk.Button(frame_rutas, text="Examinar...", command=self.buscar_origen, bg="#ced6e0").grid(row=0, column=2, padx=2)
+        ttk.Label(frame_rutas, text="Carpeta de ROMs (Origen):").grid(row=0, column=0, sticky=tk.W, pady=5)
+        entry_origen = ttk.Entry(frame_rutas, textvariable=self.ruta_origen, width=55)
+        entry_origen.grid(row=0, column=1, padx=5, pady=5)
+        btn_buscar_origen = ttk.Button(frame_rutas, text="Buscar...", command=self.seleccionar_origen)
+        btn_buscar_origen.grid(row=0, column=2, padx=5, pady=5)
         
-        # Destino
-        tk.Label(frame_rutas, text="Memoria de Destino (USB):", font=("Arial", 9, "bold")).grid(row=1, column=0, sticky="w", pady=5)
-        tk.Entry(frame_rutas, textvariable=self.ruta_destino, width=52).grid(row=1, column=1, padx=5)
-        tk.Button(frame_rutas, text="Examinar...", command=self.buscar_destino, bg="#ced6e0").grid(row=1, column=2, padx=2)
-
-        # --- PANEL DE REGISTRO / LOGS ---
-        frame_logs = tk.LabelFrame(self.root, text=" 🖥️ Consola de Proceso local en tiempo real ", font=("Arial", 10, "bold"), padx=10, pady=10)
-        frame_logs.pack(fill="both", expand=True, padx=20, pady=10)
+        ttk.Label(frame_rutas, text="Unidad Pandora (Destino):").grid(row=1, column=0, sticky=tk.W, pady=5)
+        entry_destino = ttk.Entry(frame_rutas, textvariable=self.ruta_destino, width=55)
+        entry_destino.grid(row=1, column=1, padx=5, pady=5)
+        btn_buscar_destino = ttk.Button(frame_rutas, text="Buscar...", command=self.seleccionar_destino)
+        btn_buscar_destino.grid(row=1, column=2, padx=5, pady=5)
         
-        self.txt_logs = tk.Text(frame_logs, height=10, width=75, font=("Consolas", 9), bg="#2f3542", fg="#7bed9f")
-        self.txt_logs.pack(side="left", fill="both", expand=True)
+        # Sección: Consola Visual
+        frame_consola = ttk.LabelFrame(main_frame, text=" Consola de Operación ", padding="10 10 10 10")
+        frame_consola.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
         
-        scroll = tk.Scrollbar(frame_logs, command=self.txt_logs.yview)
-        scroll.pack(side="right", fill="y")
-        self.txt_logs.config(yscrollcommand=scroll.set)
+        self.consola_texto = tk.Text(
+            frame_consola, 
+            height=12, 
+            wrap=tk.WORD, 
+            background="#1e1e1e", 
+            foreground="#ffffff", 
+            insertbackground="white",
+            font=("Consolas", 10)
+        )
+        self.consola_texto.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.consola_texto.config(state=tk.DISABLED)
         
-        self.log("Sistema Pandarcade inicializado con éxito.")
-        self.log("Core conectado. Listo para purga y optimización en crudo.")
-
-    def buscar_origen(self):
-        dir_sel = filedialog.askdirectory(title="Selecciona la carpeta origen de tus juegos")
-        if dir_sel:
-            self.ruta_origen.set(dir_sel)
-            self.log(f"Ruta de origen asignada: {dir_sel}")
-
-    def buscar_destino(self):
-        dir_sel = filedialog.askdirectory(title="Selecciona la raíz de tu memoria USB destino")
-        if dir_sel:
-            self.ruta_destino.set(dir_sel)
-            self.log(f"Ruta de destino asignada: {dir_sel}")
+        scroll = ttk.Scrollbar(frame_consola, command=self.consola_texto.yview)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.consola_texto.config(yscrollcommand=scroll.set)
+        
+        # Botón de Acción
+        self.btn_iniciar = ttk.Button(
+            main_frame, 
+            text="🚀 INICIAR INYECCIÓN MASIVA", 
+            command=self.iniciar_inyeccion
+        )
+        self.btn_iniciar.pack(fill=tk.X, ipady=8)
 
     def log(self, mensaje):
-        self.txt_logs.insert(tk.END, f">> {mensaje}\n")
-        self.txt_logs.see(tk.END)
-        self.root.update_idletasks() # Fuerza a la ventana a actualizar el texto en vivo
-
-    def ejecutar_proceso_maestro(self):
-        orig = self.ruta_origen.get()
-        dest = self.ruta_destino.get()
-        
-        if not orig or not dest:
-            messagebox.showerror("Error de Configuración", "Por favor, asigna ambas rutas antes de iniciar.")
-            return
-            
-        # Desactivamos el botón temporalmente para evitar clics dobles lentos
-        btn_ejecutar.config(state="disabled", bg="#747d8c")
-        
-        self.log("🚀 INICIANDO MODALIDAD EN CRUDO...")
-        
-        # 1. Llamamos al script purgador de duplicados y basura multimedia
-        exito_purga = self.core.purgar_y_extraer_en_crudo(orig)
-        
-        if exito_purga:
-            self.log("⚡ Purga completada. Iniciando inyección automática de listados...")
-            # Aquí buscaremos el archivo de historial en el escritorio si existe para clasificar
-            ruta_txt_escritorio = os.path.expanduser("~/Desktop/lista_juegos.txt")
-            
-            if os.path.exists(ruta_txt_escritorio):
-                self.core.clasificar_e_inyectar_db(ruta_txt_escritorio, orig, dest)
-            else:
-                self.log("ℹ️ No se encontró 'lista_juegos.txt' en el Escritorio. Se asume organización manual previa.")
-            
-            messagebox.showinfo("¡Proceso Terminado!", "Tu catálogo ha sido purgado en crudo y estructurado correctamente.")
+        if hasattr(self, 'consola_texto') and self.consola_texto:
+            self.consola_texto.config(state=tk.NORMAL)
+            self.consola_texto.insert(tk.END, f"{mensaje}\n")
+            self.consola_texto.see(tk.END)
+            self.consola_texto.config(state=tk.DISABLED)
         else:
-            messagebox.showerror("Fallo del Sistema", "Ocurrió un error al intentar acceder a los directorios.")
-            
-        btn_ejecutar.config(state="normal", bg="#2ed573")
-        self.log("🏁 Sistema libre. Listo para una nueva unidad.")
+            print(mensaje)
+
+    def seleccionar_origen(self):
+        carpeta = filedialog.askdirectory(title="Selecciona la carpeta de tus juegos")
+        if carpeta:
+            self.ruta_origen.set(carpeta)
+            self.log(f"📂 Origen configurado: {carpeta}")
+
+    def seleccionar_destino(self):
+        carpeta = filedialog.askdirectory(title="Selecciona la unidad de tu Pandora Box")
+        if carpeta:
+            self.ruta_destino.set(carpeta)
+            self.log(f"💾 Destino configurado: {carpeta}")
+
+    def iniciar_inyeccion(self):
+        origen = self.ruta_origen.get()
+        destino = self.ruta_destino.get()
+
+        if not origen or not os.path.exists(origen):
+            messagebox.showerror("Error", "⚠️ Selecciona una carpeta de origen válida.")
+            return
+
+        if not destino or not os.path.exists(destino):
+            messagebox.showerror("Error", "⚠️ Selecciona la ruta de tu tarjeta Pandora Box.")
+            return
+
+        self.btn_iniciar.config(state=tk.DISABLED)
+        self.log("🚀 Iniciando el proceso de inyección de ROMs...")
+
+        # Hilo secundario para evitar bloqueos de la GUI
+        hilo = threading.Thread(target=self._proceso_segundo_plano, args=(origen, destino), daemon=True)
+        hilo.start()
+
+    def _proceso_segundo_plano(self, origen, destino):
+        try:
+            resultado = self.core.clasificar_y_preparar(origen, destino)
+            if resultado:
+                self.log("🎉 ¡Proceso finalizado con éxito!")
+                messagebox.showinfo("Éxito", "¡Juegos inyectados correctamente!")
+            else:
+                self.log("❌ Hubo un inconveniente durante la clasificación.")
+        except Exception as e:
+            self.log(f"💥 Error crítico: {str(e)}")
+            messagebox.showerror("Error Crítico", str(e))
+        finally:
+            self.btn_iniciar.config(state=tk.NORMAL)
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = PandarcadeInjectorGUI(root)
-    
-    # Botón de ejecución maestro abajo en la ventana conectado a la función real
-    btn_ejecutar = tk.Button(root, text="🔥 INICIAR OPTIMIZACIÓN Y MIGRACIÓN EN CRUDO", 
-                             font=("Arial", 11, "bold"), bg="#2ed573", fg="white", 
-                             padx=20, pady=8, command=app.ejecutar_proceso_maestro)
-    btn_ejecutar.pack(pady=12)
-    
     root.mainloop()
