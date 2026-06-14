@@ -1,14 +1,14 @@
 import os
 import shutil
-from database import PandarcadeDatabase
+from DBManager import PandarcadeDatabase
 from detector import SonyFormatDetector
 from mcgames_builder import PandarcadeMcGamesBuilder  # Importamos tu nuevo constructor eMMC
 
 class PandarcadeCore:
     def __init__(self, log_callback):
         self.log = log_callback
-        self.db_manager = PandarcadeDatabase(log_callback)
-        self.sony_detector = SonyFormatDetector(log_callback)
+        self.DBManager = PandarcadeDatabase(log_callback)
+        self.detector = SonyFormatDetector(log_callback)
         self.mcgames_builder = PandarcadeMcGamesBuilder(log_callback)  # Inicializamos el constructor
         
         # Diccionario maestro de fabricantes
