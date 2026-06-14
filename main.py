@@ -15,8 +15,10 @@ class PandarcadeInjectorGUI:
         self.root.geometry("680x540")
         self.root.resizable(False, False)
         
-        # Conectamos el motor lógico pasándole nuestra consola visual de logs
+         # Conectamos los componentes del sistema
         self.core = PandarcadeCore(self.log)
+        self.detector = SonyFormatDetector(self.log)
+        self.db = PandarcadeDatabase()  # Llama a la clase dentro de DBManager.py
         
         # Variables de control de rutas
         self.ruta_origen = tk.StringVar()
