@@ -95,7 +95,7 @@ class PandarcadeInjectorGUI:
             ruta_txt_escritorio = os.path.expanduser("~/Desktop/lista_juegos.txt")
             
             if os.path.exists(ruta_txt_escritorio):
-                self.core.clasificar_por_historial(ruta_txt_escritorio, orig, dest)
+                self.core.clasificar_e_inyectar_db(ruta_txt_escritorio, orig, dest)
             else:
                 self.log("ℹ️ No se encontró 'lista_juegos.txt' en el Escritorio. Se asume organización manual previa.")
             
