@@ -1,12 +1,15 @@
 import os
 import shutil
+from database import PandarcadeDatabase
+from detector import SonyFormatDetector
 
 class PandarcadeCore:
     def __init__(self, log_callback):
-        # Usamos un callback para mandar los mensajes directo a la consola visual de la pantalla
         self.log = log_callback
+        self.db_manager = PandarcadeDatabase(log_callback)
+        self.sony_detector = SonyFormatDetector(log_callback)
         
-        # Diccionario maestro de fabricantes probado en tus consolas
+        # Diccionario maestro de fabricantes
         self.MAPA_EMULADORES = {
             'neo-geo': 'fba', 'snk': 'fba', 'igs': 'fba', 
             'capcom play system 1': 'fba', 'capcom play system 2': 'fba', 'capcom': 'fba', 
@@ -17,91 +20,160 @@ class PandarcadeCore:
             'nintendo classics': 'mame78', 'atari classics': 'mame78'
         }
 
+        # Regla de extensiones nativas por consola actualizada
+        self.FORMATOS_POR_CONSOLA = {
+            'fba42': {'.zip'}, 'fba': {'.zip'},
+            'mame139': {'.zip'}, 'mame79': {'.zip'}, 'mame119': {'.zip'}, 'mame19': {'.zip'}, 'mame37': {'.zip'}, 'mame78': {'.zip'}, 'mame199': {'.zip'}, 'mame': {'.zip'},
+            'fc': {'.nes'}, 'family': {'.nes'}, 'nes': {'.nes'},
+            'sfc': {'.sfc', '.smc'}, 'snes': {'.sfc', '.smc'},
+            'md': {'.md', '.bin'}, 'megadrive': {'.md', '.bin'}, 'genesis': {'.md', '.bin'},
+            'mastersystem': {'.sms'}, 'sms': {'.sms'},
+            'gba': {'.gba'}, 'gbc': {'.gbc'}, 'gb': {'.gb'},
+            'n64': {'.n64', '.z64', '.v64', '.zip'},
+            'dc': {'.cdi', '.gdi', '.chd'}, 'dreamcast': {'.cdi', '.gdi', '.chd'},
+            'playstation': {'.iso', '.bin', '.cue', '.chd', '.img', '.pbp', '.ccd'}, 
+            'psx': {'.iso', '.bin', '.cue', '.chd', '.img', '.pbp', '.ccd'},
+            'psp': {'.iso', '.chd', '.cso'}, 
+            'wswan': {'.wsc', '.ws'}
+        }
+
     def purgar_y_extraer_en_crudo(self, ruta_data):
-        """Paso 1: Destruye duplicados y extrae las ROMs eliminando basura (.mp4, .txt, .xml)"""
+        """Destruye duplicados y extrae las ROMs según su formato nativo eliminando basura"""
         if not os.path.exists(ruta_data):
             self.log(f"❌ Error: La ruta {ruta_data} no existe.")
             return False
 
-        self.log("🧹 Buscando duplicados y limpiando residuos multimedia...")
+        self.log("🧹 Iniciando Purga Quirúrgica avanzada (Soporte Inteligente Sony)...")
         purgados = 0
         rescatados = 0
 
+        zips_sueltos = [z for z in os.listdir(ruta_data) if z.lower().endswith(('.zip', '.chd', '.iso', '.pbp', '.cso'))]
+        if zips_sueltos:
+            self.log(f"ℹ️ Detectados {len(zips_sueltos)} juegos en la raíz. Pasando directo a indexación.")
+            return True
+
         for sistema in os.listdir(ruta_data):
             ruta_sistema = os.path.join(ruta_data, sistema)
+            nombre_sistema_lower = sistema.lower()
+            
             if os.path.isdir(ruta_sistema):
+                ext_validas = self.FORMATOS_POR_CONSOLA.get(nombre_sistema_lower, {'.zip', '.bin', '.cue', '.iso', '.md', '.nes', '.sfc', '.chd', '.cso', '.pbp'})
+                
                 for subcarpeta in os.listdir(ruta_sistema):
                     ruta_subcarpeta = os.path.join(ruta_sistema, subcarpeta)
+                    
                     if os.path.isdir(ruta_subcarpeta):
                         if subcarpeta.startswith('.') or subcarpeta.startswith('_'): 
                             continue
                         
-                        lista_zips = [z for z in os.listdir(ruta_subcarpeta) if z.lower().endswith('.zip')]
-                        if lista_zips:
-                            zip_elegido = lista_zips[0]
-                            # Si hay conflicto de doble ZIP, salvar el correcto
-                            if len(lista_zips) > 1:
-                                for z in lista_zips:
-                                    if os.path.splitext(z)[0].lower() == subcarpeta.lower():
-                                        zip_elegido = z
+                        archivos_internos = os.listdir(ruta_subcarpeta)
+                        juegos_validos_encontrados = []
+                        
+                        for f_interno in archivos_internos:
+                            _, ext = os.path.splitext(f_interno.lower())
+                            if ext in ext_validas:
+                                ruta_f_completa = os.path.join(ruta_subcarpeta, f_interno)
+                                if os.path.getsize(ruta_f_completa) > 0:
+                                    juegos_validos_encontrados.append(f_interno)
+                        
+                        if juegos_validos_encontrados:
+                            archivo_a_rescatar = juegos_validos_encontrados
+                            
+                            if len(juegos_validos_encontrados) > 1:
+                                for j_valido in juegos_validos_encontrados:
+                                    nombre_juego_sin_ext = os.path.splitext(j_valido).lower()
+                                    if nombre_juego_sin_ext == subcarpeta.lower():
+                                        archivo_a_rescatar = j_valido
                                         break
                             
-                            ruta_origen = os.path.join(ruta_subcarpeta, zip_elegido)
-                            ruta_destino = os.path.join(ruta_sistema, zip_elegido)
+                            ruta_origen_file = os.path.join(ruta_subcarpeta, archivo_a_rescatar)
                             
-                            if not os.path.exists(ruta_destino):
-                                shutil.move(ruta_origen, ruta_destino)
-                                rescatados += 1
+                            _, ext_actual = os.path.splitext(archivo_a_rescatar.lower())
+                            ruta_destino_final = os.path.join(ruta_sistema, archivo_a_rescatar)
+                            
+                            if ext_actual in {'.iso', '.pbp', '.chd'}:
+                                consola_detectada = self.sony_detector.analizar_cabecera_sony(ruta_origen_file)
+                                if consola_detectada != "indeterminado":
+                                    ruta_raiz_games = os.path.dirname(ruta_sistema)
+                                    folder_real = "playstation" if consola_detectada == "playstation" else "psp"
+                                    ruta_destino_final = os.path.join(ruta_raiz_games, folder_real, archivo_a_rescatar)
+                                    
+                                    os.makedirs(os.path.dirname(ruta_destino_final), exist_ok=True)
+                                    self.log(f"🧠 [FIRMWARE DETECTED] '{archivo_a_rescatar}' identificado como {consola_detectada.upper()}. Redirigiendo.")
+
+                            if not os.path.exists(ruta_destino_final):
+                                try:
+                                    shutil.move(ruta_origen_file, ruta_destino_final)
+                                    rescatados += 1
+                                except Exception as e:
+                                    self.log(f"⚠️ No se pudo mover {archivo_a_rescatar}: {e}")
+                                    continue
                             
                             try:
                                 shutil.rmtree(ruta_subcarpeta)
                                 purgados += 1
                             except PermissionError:
-                                self.log(f"⚠️ Carpeta retenida por Windows, saltando: {subcarpeta}")
+                                continue
+                            except Exception:
                                 continue
         
-        self.log(f"✅ Limpieza terminada: {rescatados} juegos extraídos y {purgados} carpetas de basura eliminadas.")
+        self.log(f"✅ ¡Purga con escáner Sony completada! {rescatados} juegos en crudo organizados.")
         return True
 
-    def clasificar_por_historial(self, ruta_txt, ruta_origen_zips, raiz_destino_usb):
-        """Paso 2: Lee el historial local e inyecta los .zip en crudo auto-creando carpetas"""
+    def clasificar_e_inyectar_db(self, ruta_txt, ruta_origen_zips, raiz_destino_usb):
+        """Clasifica las ROMs en crudo y genera la base de datos SQL limpia en la USB"""
         if not os.path.exists(ruta_txt) or not os.path.exists(ruta_origen_zips):
-            self.log("❌ Error: Verifica el archivo .txt de origen o la carpeta de juegos revueltos.")
+            self.log("❌ Error: Estructura de archivos de texto o ruta de origen incompleta.")
             return False
 
-        if not os.path.exists(raiz_destino_usb):
-            os.makedirs(raiz_destino_usb)
+        ruta_games_destino = os.path.join(raiz_destino_usb, "games")
+        if not os.path.exists(ruta_games_destino):
+            os.makedirs(ruta_games_destino)
 
-        self.log(f"📦 Clasificando automáticamente desde: {ruta_txt}")
+        self.log(f"📦 Clasificando juegos e inyectando Base de Datos interna...")
+        
+        diccionario_para_db = {}
         organizados = 0
 
         with open(ruta_txt, 'r', encoding='utf-8', errors='ignore') as f:
             for linea in f:
-                linea_lower = linea.lower()
-                if ".zip" in linea_lower and "identified as" in linea_lower:
+                if ".zip" in linea.lower() and "identified as" in linea.lower():
                     try:
                         partes = linea.split(" - ")
                         nombre_zip = partes[0].strip()
-                        detalles = partes[1].lower() if len(partes) > 1 else linea_lower
+                        detalles = partes[1].lower() if len(partes) > 1 else linea.lower()
                         
                         ruta_archivo_origen = os.path.join(ruta_origen_zips, nombre_zip)
                         
                         if os.path.exists(ruta_archivo_origen):
-                            emulador_destino = 'mame139' # Default
+                            emulador_destino = 'mame139' 
+                            titulo_bonito = nombre_zip
+                            
+                            if "identified as" in detalles:
+                                sub_partes = detalles.split("identified as")
+                                if len(sub_partes) > 1:
+                                    titulo_bonito = sub_partes[1].split(" - ")[0].replace("classics", "").strip().title()
+
                             for fabricante, carpeta in self.MAPA_EMULADORES.items():
                                 if fabricante in detalles:
                                     emulador_destino = carpeta
                                     break
                             
-                            carpeta_final = os.path.join(raiz_destino_usb, emulador_destino)
+                            carpeta_final = os.path.join(raiz_destino_usb, "games", "data", emulador_destino)
                             if not os.path.exists(carpeta_final):
                                 os.makedirs(carpeta_final)
-                                self.log(f"📁 [NUEVA CARPETA] Creada ruta para emulador: {emulador_destino}")
                             
-                            shutil.move(ruta_archivo_origen, os.path.join(carpeta_final, nombre_zip))
+                            ruta_archivo_destino = os.path.join(carpeta_final, nombre_zip)
+                            if not os.path.exists(ruta_archivo_destino):
+                                shutil.move(ruta_archivo_origen, ruta_archivo_destino)
+                            
+                            # --- AQUÍ QUEDA LA ESTRUCTURA CORREGIDA Y ALINEADA ---
+                            diccionario_para_db[nombre_zip] = (titulo_bonito, emulador_destino)
                             organizados += 1
-                    except Exception as e:
+                    except Exception:
                         continue
 
-        self.log(f"✅ ¡Clasificación masiva completada! {organizados} juegos acomodados en su emulador ideal.")
-        return True
+        # Al terminar el bucle de lectura, se mandan los datos acumulados al constructor SQL
+        if diccionario_para_db:
+            self.db_manager.registrar_juegos_en_db(ruta_games_destino, diccionario_para_db)
+            self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")return True
