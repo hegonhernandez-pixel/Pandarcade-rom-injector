@@ -1,4 +1,4 @@
-import os
+  import os
 
 class SonyFormatDetector:
     def __init__(self, log_callback=None):
