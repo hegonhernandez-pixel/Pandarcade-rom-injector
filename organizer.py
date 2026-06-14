@@ -177,7 +177,7 @@ class PandarcadeCore:
         # --- INYECCIÓN EN PARALELO (MÉTODO USB EXTERNO Y MÉTODO EMMC INTERNO) ---
         if diccionario_para_db:
             # 1. Creamos la base de datos externa .db nativa
-            self.db_manager.registrar_juegos_en_db(ruta_games_destino, diccionario_para_db)
+            self.DBManager.registrar_juegos_en_db(ruta_games_destino, diccionario_para_db)
             # 2. Compilamos de forma automatizada el script instalador para la memoria interna soldada
             self.mcgames_builder.construir_estructura_mcgames(raiz_destino_usb, diccionario_para_db)
             self.log(f"✅ ¡Clasificación masiva y Base de Datos completada! {organizados} juegos listos.")
