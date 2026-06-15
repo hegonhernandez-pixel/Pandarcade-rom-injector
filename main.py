@@ -239,3 +239,92 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = PandarcadeMainWindow(root)
     root.mainloop()
+    import os
+import shutil
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
+# --- CONFIGURACIÓN COMERCIAL (Tu Backend) ---
+class PandoraUniversalManager:
+		def __init__(self, root):
+				self.root = root
+				self.root.title("Pandarcade - BIOS & ROMs")
+				self.root.geometry("800x600")
+		def __init__(self, log_callback=root):
+				self.log_callback = log_callback
+				# 🔒 Límite de la versión de evaluación comercial
+				self.LIMITE_VERSION_FREE = 25
+				self.es_premium = False # Cambiar a True si el usuario ingresa serial
+
+# --- DICCIONARIO DE BIOS ---
+PANDORA_BIOS_MAP = {
+		"scph5501.bin": ["playstation", "BIOS PS1"],
+		"dc_boot.bin": ["dreamcast", "Boot Dreamcast"],
+		"awbios.zip": ["dreamcast", "BIOS Atomiswave"],
+		"naomi.zip": ["dreamcast", "BIOS Naomi"],
+		"gba_bios.bin": ["gba", "BIOS GBA"],
+		"neogeo.zip": ["mame139", "BIOS NeoGeo MAME 139"],
+		"neogeo.zip": ["fba42", "BIOS NeoGeo FBA"]
+}
+
+class PandarcadeMainWindow:
+
+
+				# Instanciamos tu manager para validar límites de copia
+				self.manager = PandoraUniversalManager(log_callback=self.append_log_roms)
+
+				# 🛑 Variables de control para botones STOP independientes
+				self.roms_corriendo = False
+				self.bios_corriendo = False
+
+				# Configuración estética de las pestañas (Diseño Arcade)
+				style = ttk.Style()
+				style.theme_use('default')
+				style.configure("TNotebook", background="#141419", borderwidth=0)
+				style.configure("TNotebook.Tab", background="#252530", foreground="white", font=("Arial", 10), padding=10)
+				style.map("TNotebook.Tab", background=[("selected", "#00f0ff")], foreground=[("selected", "#000000")])
+
+				# Interfaz Base (Pestañas)
+				self.notebook = ttk.Notebook(self.root)
+				self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
+
+				self.tab_roms = tk.Frame(self.notebook, bg="#141419")
+				self.tab_bios = tk.Frame(self.notebook, bg="#141419")
+
+				self.notebook.add(self.tab_roms, text=" 🎮 ROMs ")
+				self.notebook.add(self.tab_bios, text=" 🛠️ BIOS ")
+
+				# Montar el contenido de ambas ventanas
+				self.setup_roms_tab()
+				self.setup_bios_tab()
+				self.crear_barra_licencia()
+
+# =========================================================================
+# 🎮 PESTAÑA ROMS (CONSTRUIDA Y CORREGIDA)
+# =========================================================================
+				setup_roms_tab(self):
+				self.roms_origen_path = tk.StringVar()
+				self.roms_destino_path = tk.StringVar()
+
+				# Configuración de Rutas de Juegos
+				f_origen_r = tk.LabelFrame(self.tab_roms, text=" Carpeta origen de ROMs en PC ", bg="#141419", fg="#00f0ff", font=("Arial", 10, "bold"))
+				f_origen_r.pack(fill="x", padx=20, pady=5)
+				tk.Entry(f_origen_r, textvariable=self.roms_origen_path, width=50, bg="#1c1c24", fg="#00f0ff", insertbackground="white").pack(side="left", padx=5, expand=True, fill="x")
+				tk.Button(f_origen_r, text="...", font=("Arial", 9, "bold"), command=lambda: self.roms_origen_path.set(filedialog.askdirectory())).pack(side="right", padx=5)
+
+				f_destino_r = tk.LabelFrame(self.tab_roms, text=" Carpeta de emulador en Pandora (Ej: games/data/mame78) ", bg="#141419", fg="#00f0ff", font=("Arial", 10, "bold"))
+				f_destino_r.pack(fill="x", padx=20, pady=5)
+				tk.Entry(f_destino_r, textvariable=self.roms_destino_path, width=50, bg="#1c1c24", fg="#00f0ff", insertbackground="white").pack(side="left", padx=5, expand=True, fill="x")
+				tk.Button(f_destino_r, text="...", font=("Arial", 9, "bold"), command=lambda: self.roms_destino_path.set(filedialog.askdirectory())).pack(side="right", padx=5)
+
+				# Consola de texto para ROMs
+				self.txt_log_roms = tk.Text(self.tab_roms, height=12, bg="black", fg="#39ff14", font=("Consolas", 9))
+				self.txt_log_roms.pack(pady=10, padx=20, fill="both", expand=True)
+
+				# Panel de botones Arcade para ROMs
+				f_botones_r = tk.Frame(self.tab_roms, bg="#141419")
+				f_botones_r.pack(pady=10)
+
+				self.btn_iniciar_roms = tk.Button(f_botones_r, text="▶️ INYECTAR ROMS", bg="#252530", fg="white", font=("Arial", 10, "bold"), command=self.procesar_roms, relief="groove", cursor="hand2")
+				self.btn_iniciar_roms.pack(side="left", padx=10)
+				
