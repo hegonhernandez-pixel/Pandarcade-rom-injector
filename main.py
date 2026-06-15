@@ -1,15 +1,86 @@
 import os
 import shutil
+import time
+import webbrowser # Para abrir el enlace de PayPal en el navegador
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-# --- CONFIGURACIÓN COMERCIAL (Tu Backend) ---
+# --- BACKEND MODIFICADO CON LÍMITE DE TIEMPO (24 HORAS) ---
 class PandoraUniversalManager:
     def __init__(self, log_callback=None):
         self.log_callback = log_callback
-        # 🔒 Límite de la versión de evaluación comercial
         self.LIMITE_VERSION_FREE = 25
-        self.es_premium = False # Cambiar a True si el usuario ingresa serial
+        self.ARCHIVO_SESION = ".pandora_session"
+
+    def verificar_limite_tiempo(self):
+        """
+        Revisa si el usuario ya gastó sus 25 juegos diarios.
+        Devuelve (True, "Mensaje") si puede continuar, o (False, "Mensaje") si debe esperar.
+        """
+        ahora = time.time()
+        segundos_en_24h = 24 * 60 * 60 # 86,400 segundos
+
+        if not os.path.exists(self.ARCHIVO_SESION):
+            # Primera vez que usa el programa o sesión limpia
+            return True, 0
+
+        try:
+            with open(self.ARCHIVO_SESION, "r") as f:
+                datos = f.read().split(",")
+                ultimo_acceso = float(datos[0])
+                juegos_procesados = int(datos[1])
+
+            # Si ya pasaron las 24 horas, se reinicia el contador automáticamente
+            if ahora - ultimo_acceso > segundos_en_24h:
+                return True, 0
+
+            # Si está dentro de las 24 horas y ya superó los 25 juegos, se bloquea
+            if juegos_procesados >= self.LIMITE_VERSION_FREE:
+                tiempo_restante = segundos_en_24h - (ahora - ultimo_acceso)
+                horas_restantes = int(tiempo_restante // 3600)
+                minutos_restantes = int((tiempo_restante % 3600) // 60)
+                return False, f"🛑 Has alcanzado el límite gratuito de {self.LIMITE_VERSION_FREE} juegos diarios.\nEspera {horas_restantes}h y {minutos_restantes}m o apoya el proyecto con una donación."
+
+            return True, juegos_procesados
+        except:
+            # Si el archivo se corrompe, permitimos el paso por seguridad
+            return True, 0
+
+    def registrar_inyeccion(self, cantidad_inyectada):
+        """ Guarda el progreso del usuario de forma local """
+        ahora = time.time()
+        _, juegos_actuales = self.verificar_limite_tiempo()
+        nuevo_total = juegos_actuales + cantidad_inyectada
+        
+        with open(self.ARCHIVO_SESION, "w") as f:
+            f.write(f"{ahora},{nuevo_total}")
+			🕹️ Integración en tu Ventana Principal (main.py):
+			Agrega este método dentro de tu clase PandarcadeMainWindow para renderizar el botón de donaciones y conectarlo a tu cuenta de PayPal:python    def abrir_paypal(self):
+        # Reemplaza 'tu_correo_o_link' por tu enlace personalizado de PayPal.Me (Ej: https://paypal.me)
+        enlace_paypal = "https://paypal.com"
+        webbrowser.open(enlace_paypal)
+
+    def crear_barra_licencia(self):
+        # Instanciamos la verificación de tiempo
+        puede_continuar, mensaje_tiempo = self.manager.verificar_limite_tiempo()
+        
+        color_bg = "#39ff14" if puede_continuar else "#ff0055"
+        texto = f"📶 MODO FREEMIUM: {self.manager.LIMITE_VERSION_FREE} juegos gratis cada 24 horas" if puede_continuar else mensaje_tiempo
+        
+        # Contenedor inferior de estatus
+        f_status = tk.Frame(self.root, bg=color_bg, pady=4)
+        f_status.pack(fill="x", side="bottom")
+
+        lbl_status = tk.Label(f_status, text=texto, font=("Arial", 9, "bold"), bg=color_bg, fg="black")
+        lbl_status.pack(side="left", padx=10)
+
+        # 🎁 BOTÓN DE DONACIONES EN VIVO
+        btn_donar = tk.Button(
+            f_status, text="🎁 Apoyar Proyecto (PayPal)", font=("Arial", 8, "bold"),
+            bg="black", fg="#39ff14", activebackground="#00f0ff", command=self.abrir_paypal,
+            relief="groove", cursor="hand2", padx=5
+        )
+        btn_donar.pack(side="right", padx=10)
 
 # --- DICCIONARIO DE BIOS ---
 PANDORA_BIOS_MAP = {
