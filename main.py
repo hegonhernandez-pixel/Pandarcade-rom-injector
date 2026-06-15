@@ -1,99 +1,115 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-# Importamos la lógica que acabamos de crear arriba
-from bios_logic import ejecutar_inyeccion_bios 
 
-class PandarcadeMainApp:
+# --- DICCIONARIO DE BIOS ---
+PANDORA_BIOS_MAP = {
+    "scph5501.bin": ["playstation", "BIOS PS1"],
+    "dc_boot.bin": ["dreamcast", "Boot Dreamcast"],
+    "awbios.zip": ["dreamcast", "BIOS Atomiswave"],
+    "naomi.zip": ["dreamcast", "BIOS Naomi"],
+    "gba_bios.bin": ["gba", "BIOS GBA"],
+    "neogeo.zip": ["mame139", "BIOS NeoGeo MAME 139"],
+    "neogeo.zip": ["fba42", "BIOS NeoGeo FBA"]
+}
+
+class PandarcadeMainWindow:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pandarcade Rom Injector & Tools")
-        self.root.geometry("700x500")
+        self.root.title("Pandarcade - BIOS & ROMs")
+        self.root.geometry("750x500")
+        
+        # 🛑 Variable de control para el botón STOP
+        self.corriendo = False
 
-        # 1. CREAR EL SISTEMA DE PESTAÑAS (Notebook)
+        # Interfaz Base (Pestañas)
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # 2. DEFINIR LAS PESTAÑAS
-        self.tab_roms = ttk.Frame(self.notebook)
-        self.tab_bios = ttk.Frame(self.notebook)
+        self.tab_roms = tk.Frame(self.notebook, bg="#141419")
+        self.tab_bios = tk.Frame(self.notebook, bg="#141419")
 
-        self.notebook.add(self.tab_roms, text=" 🎮 Inyector de ROMs ")
-        self.notebook.add(self.tab_bios, text=" 🛠️ Gestor de BIOS ")
+        self.notebook.add(self.tab_roms, text=" 🎮 ROMs ")
+        self.notebook.add(self.tab_bios, text=" 🛠️ BIOS ")
 
-        # Inicializar contenido de las pestañas
-        self.setup_roms_tab()
         self.setup_bios_tab()
 
-    def setup_roms_tab(self):
-        """Aquí va tu código actual del inyector de ROMs que tienes en GitHub"""
-        lbl = tk.Label(self.tab_roms, text="Tu interfaz actual de ROMs va aquí.", font=("Arial", 12))
-        lbl.pack(pady=50)
-
     def setup_bios_tab(self):
-        """Nueva pestaña integrada para solucionar el problema de las BIOS perdidas"""
         self.origen_path = tk.StringVar()
         self.destino_path = tk.StringVar()
 
-        # Marco Origen
-        frame_origen = tk.LabelFrame(self.tab_bios, text=" 1. Pack de BIOS (Revueltas o en subcarpetas) ", font=("Arial", 9, "bold"), padx=10, pady=10)
-        frame_origen.pack(fill="x", padx=20, pady=10)
-        tk.Entry(frame_origen, textvariable=self.origen_path, width=60, state="readonly").pack(side="left", padx=5)
-        tk.Button(frame_origen, text="Examinar...", command=self.seleccionar_origen).pack(side="right", padx=5)
+        # Configuración de Rutas
+        f_origen = tk.LabelFrame(self.tab_bios, text=" Origen de BIOS ", bg="#141419", fg="#00f0ff")
+        f_origen.pack(fill="x", padx=20, pady=5)
+        tk.Entry(f_origen, textvariable=self.origen_path, width=50).pack(side="left", padx=5)
+        tk.Button(f_origen, text="...", command=lambda: self.origen_path.set(filedialog.askdirectory())).pack(side="right", padx=5)
 
-        # Marco Destino
-        frame_destino = tk.LabelFrame(self.tab_bios, text=" 2. Carpeta Destino (Selecciona la carpeta 'data' de tu Pandora) ", font=("Arial", 9, "bold"), padx=10, pady=10)
-        frame_destino.pack(fill="x", padx=20, pady=10)
-        tk.Entry(frame_destino, textvariable=self.destino_path, width=60, state="readonly").pack(side="left", padx=5)
-        tk.Button(frame_destino, text="Examinar...", command=self.seleccionar_destino).pack(side="right", padx=5)
+        f_destino = tk.LabelFrame(self.tab_bios, text=" Carpeta 'data' de Pandora ", bg="#141419", fg="#00f0ff")
+        f_destino.pack(fill="x", padx=20, pady=5)
+        tk.Entry(f_destino, textvariable=self.destino_path, width=50).pack(side="left", padx=5)
+        tk.Button(f_destino, text="...", command=lambda: self.destino_path.set(filedialog.askdirectory())).pack(side="right", padx=5)
 
-        # Caja de Registro / Log técnico
-        self.txt_log = tk.Text(self.tab_bios, height=12, width=80, font=("Courier", 9))
-        self.txt_log.pack(pady=10, padx=20)
-        self.txt_log.config(state="disabled")
+        # Consola de Texto
+        self.txt_log = tk.Text(self.tab_bios, height=12, bg="black", fg="#39ff14")
+        self.txt_log.pack(pady=10, padx=20, fill="both", expand=True)
 
-        # Botón Procesar
-        self.btn_procesar = tk.Button(self.tab_bios, text="REPARAR E INYECTAR BIOS", font=("Arial", 10, "bold"), bg="#4CAF50", fg="white", command=self.procesar_bios_ui, state="disabled")
-        self.btn_procesar.pack(pady=5)
+        # 🎛️ PANEL DE CONTROL PRINCIPAL
+        f_botones = tk.Frame(self.tab_bios, bg="#141419")
+        f_botones.pack(pady=10)
 
-    def seleccionar_origen(self):
-        path = filedialog.askdirectory(title="Selecciona la carpeta de tu Pack de BIOS")
-        if path:
-            self.origen_path.set(path)
-            self.evaluar_activacion_boton()
+        self.btn_iniciar = tk.Button(f_botones, text="▶️ INICIAR INYECCIÓN", bg="#252530", fg="white", font=("Arial", 10, "bold"),command=self.procesar_bios)
+        self.btn_iniciar.pack(side="left", padx=10)
 
-    def seleccionar_destino(self):
-        path = filedialog.askdirectory(title="Selecciona la carpeta 'data' de tu Pandora")
-        if path:
-            if not os.path.basename(path) == "data" and not os.path.exists(os.path.join(path, "playstation")):
-                messagebox.showwarning("Ruta Incorrecta", "Atención: Asegúrate de seleccionar la carpeta raíz llamada 'data' (la de tu captura).")
-            self.destino_path.set(path)
-            self.evaluar_activacion_boton()
+        # 🛑 EL BOTÓN DE STOP QUE NECESITAS
+        self.btn_stop = tk.Button(f_botones, text="🛑 STOP", bg="#ff0055", fg="white", font=("Arial", 10, "bold"), command=self.detener_proceso, state="disabled")
+        self.btn_stop.pack(side="left", padx=10)
 
-    def evaluar_activacion_boton(self):
-        if self.origen_path.get() and self.destino_path.get():
-            self.btn_procesar.config(state="normal")
+    def detener_proceso(self):
+        """ Cambia el estado para frenar el bucle de copia """
+        self.corriendo = False
+        self.txt_log.insert(tk.END, "\n🛑 [SISTEMA] ¡Proceso detenido por el usuario!\n")
+        self.btn_stop.config(state="disabled")
+        self.btn_iniciar.config(state="normal")
 
-    def append_log(self, mensaje):
-        """Función callback que la lógica usará para escribir en la interfaz."""
-        self.txt_log.config(state="normal")
-        self.txt_log.insert(tk.END, mensaje + "\n")
-        self.txt_log.see(tk.END)
-        self.txt_log.config(state="disabled")
-        self.root.update_idletasks()
-
-    def procesar_bios_ui(self):
-        # Limpiar la consola antes de iniciar
-        self.txt_log.config(state="normal")
-        self.txt_log.delete("1.0", tk.END)
-        self.txt_log.config(state="disabled")
-
-        # Llamamos a la función del módulo lógico pasándole nuestro método de log
-        total = ejecutar_inyeccion_bios(self.origen_path.get(), self.destino_path.get(), self.append_log)
+    def procesar_bios(self):
+        origen = self.origen_path.get()
+        destino = self.destino_path.get()
         
-        messagebox.showinfo("Proceso Terminado", f"¡Éxito! Se han organizado e inyectado {total} archivos de BIOS en sus emuladores correspondientes.")
+        if not origen or not destino:
+            messagebox.showwarning("Error", "Selecciona ambas carpetas.")
+            return
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = PandarcadeMainApp(root)
-    root.mainloop()
+        self.btn_stop.config(state="normal")
+        self.txt_log.delete("1.0", tk.END)self.txt_log.insert(tk.END, "=== ⚙️ Escaneando pack desorganizado recursivamente... ===\n")
+        for archivo_bios, (subcarpeta, desc) in PANDORA_BIOS_MAP.items():
+            if not self.bios_corriendo:
+                break
+            self.root.update()
+            ruta_origen = None
+            for raiz, _, archivos in os.walk(origen)
+            :if archivo_bios in archivos:
+                ruta_origen = os.path.join(raiz, archivo_bios)
+                break
+            if ruta_origen:
+                dest_dir = os.path.join(destino, subcarpeta)
+                os.makedirs(dest_dir, exist_ok=True)
+                shutil.copy2(ruta_origen, os.path.join(dest_dir, archivo_bios))
+                self.txt_log.insert(tk.END, f"[✅ REPARADO] {archivo_bios} -> {subcarpeta}/\n")
+                else:self.txt_log.insert(tk.END, f"[🔍 Faltante] {archivo_bios} ({desc})\n")
+                self.txt_log.see(tk.END)if self.bios_corriendo:self.txt_log.insert(tk.END, "\n=== ✨ Gestión de BIOS Finalizada ===\n")
+                messagebox.showinfo("Éxito", "Estructura de BIOS reparada correctamente.")
+                self.btn_iniciar.config(state="normal")
+                self.btn_stop.config(state="disabled")
+                self.bios_corriendo = False
+
+# =========================================================================# 💵 BARRA DE MONETIZACIÓN COMERCIAL# =========================================================================
+def crear_barra_licencia(self):
+   is_free = not self.manager.es_premium
+   color_bg = "#ff0055" if is_free else "#39ff14"
+texto = f"⚠️ VERSIÓN FREE: Límite de {self.manager.LIMITE_VERSION_FREE} juegos por tanda" if is_free else "🔓 VERSIÓN PREMIUM ACTIVA (Sin Límites)"
+lbl_status = tk.Label(self.root, text=texto, font=("Consolas", 10, "bold"), bg=color_bg
+                      , fg="black" if not is_free else "white", pady=4)
+lbl_status.pack(fill="x", side="bottom")
+if name == "main":root = tk.Tk()
+app = PandarcadeMainWindow(root)root.mainloop()
