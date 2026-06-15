@@ -7,7 +7,7 @@ from tkinter import filedialog, messagebox, ttk
 
 # --- BACKEND MODIFICADO CON LÍMITE DE TIEMPO (24 HORAS) ---
 class PandoraUniversalManager:
-    def __init__(self, log_callback=None):
+    def __init__(self, log_callback=self, root):
         self.log_callback = log_callback
         self.LIMITE_VERSION_FREE = 25
         self.ARCHIVO_SESION = ".pandora_session"
