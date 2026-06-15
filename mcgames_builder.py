@@ -67,7 +67,7 @@ class PandoraUniversalManager:
             pass
         return "indeterminado"
 
-    def purgar_y_extraer_en_crudo(self, ruta_origen, ruta_destino):
+def purgar_y_extraer_en_crudo(self, ruta_origen, ruta_destino):
         if not os.path.exists(ruta_origen) or not os.path.exists(ruta_destino):
             self.log("❌ Error: Rutas inválidas.")
             return "error"
@@ -77,20 +77,65 @@ class PandoraUniversalManager:
         juegos_indexados = []
         limite_alcanzado = False
 
+        # Recorrer las carpetas de sistemas principales (Ej: fc, sfc, n64, psx)
         for sistema in os.listdir(ruta_origen):
             if limite_alcanzado: break
             ruta_sistema = os.path.join(ruta_origen, sistema)
             nombre_sistema_lower = sistema.lower()
             
             if os.path.isdir(ruta_sistema):
-                ext_validas = self.FORMATOS_POR_CONSOLA.get(nombre_sistema_lower, {'.zip', '.bin', '.cue', '.iso', '.md', '.nes', '.sfc', '.chd', '.cso', '.pbp'})
+                # Obtener extensiones válidas configuradas para esta consola específica
+                ext_validas = self.FORMATOS_POR_CONSOLA.get(
+                    nombre_sistema_lower, 
+                    {'.zip', '.bin', '.cue', '.iso', '.md', '.nes', '.sfc', '.chd', '.cso', '.pbp'}
+                )
                 
+                # Normalizar el nombre de carpeta que espera la Pandora Box
+                emu_pandora = self.NORMALIZAR_CARPETA_PANDORA.get(nombre_sistema_lower, nombre_sistema_lower)
+                ruta_destino_consola = os.path.join(ruta_destino, emu_pandora)
+
+                # ====================================================================
+                # NUEVA MEJORA: PROCESAR ROMS SUELTAS DIRECTAMENTE EN LA CARPETA DEL SISTEMA
+                # ====================================================================
+                for elemento_raiz in os.listdir(ruta_sistema):
+                    if len(juegos_indexados) >= self.LIMITE_VERSION_FREE:
+                        self.log(f"⚠️ Límite de versión Demo alcanzado ({self.LIMITE_VERSION_FREE} juegos).")
+                        limite_alcanzado = True
+                        break
+                        
+                    ruta_elemento_raiz = os.path.join(ruta_sistema, elemento_raiz)
+                    if os.path.isfile(ruta_elemento_raiz):
+                        _, ext_archivo = os.path.splitext(elemento_raiz.lower())
+                        
+                        # Si el archivo suelto coincide con las extensiones válidas de la consola
+                        if ext_archivo in ext_validas and os.path.getsize(ruta_elemento_raiz) > 0:
+                            os.makedirs(ruta_destino_consola, exist_ok=True)
+                            ruta_final_archivo = os.path.join(ruta_destino_consola, elemento_raiz)
+                            
+                            if not os.path.exists(ruta_final_archivo):
+                                try:
+                                    shutil.copy2(ruta_elemento_raiz, ruta_final_archivo)
+                                    rescatados += 1
+                                    self.log(f"Inyectando: {elemento_raiz}")
+                                    juegos_indexados.append((emu_pandora, elemento_raiz))
+                                except Exception as e:
+                                    self.log(f"⚠️ Error en transferencia: {e}")
+                            else:
+                                juegos_indexados.append((emu_pandora, elemento_raiz))
+
+                if limite_alcanzado: break
+
+                # ====================================================================
+                # LOGICA DE PURGA ORIGINAL: ENTRAR A BUSCAR DENTRO DE SUB-CARPETAS BASURA
+                # ====================================================================
                 for subcarpeta in os.listdir(ruta_sistema):
                     if limite_alcanzado: break
                     ruta_subcarpeta = os.path.join(ruta_sistema, subcarpeta)
                     
                     if os.path.isdir(ruta_subcarpeta):
                         if subcarpeta.startswith('.') or subcarpeta.startswith('_'): continue
+                        # Ignorar carpetas multimedia que traen algunos packs comerciales de ROMs
+                        if subcarpeta.lower() in ['images', 'videos', 'media', 'download']: continue
                         
                         archivos_internos = os.listdir(ruta_subcarpeta)
                         juegos_validos_encontrados = []
@@ -106,7 +151,7 @@ class PandoraUniversalManager:
                                 limite_alcanzado = True
                                 break
 
-                            archivo_a_rescatar = juegos_validos_encontrados
+                            archivo_a_rescatar = juegos_validos_encontrados[0]
                             if len(juegos_validos_encontrados) > 1:
                                 for j_valido in juegos_validos_encontrados:
                                     nombre_juego_sin_ext, _ = os.path.splitext(j_valido)
@@ -118,33 +163,32 @@ class PandoraUniversalManager:
                             _, ext_actual = os.path.splitext(archivo_a_rescatar.lower())
                             
                             folder_final_nombre = nombre_sistema_lower
-                            
-                            # Filtro de Firmware Ofuscado
                             if ext_actual in {'.iso', '.pbp', '.chd'}:
                                 deteccion = self._analizar_cabecera_binaria_segura(ruta_orig_file)
                                 if deteccion != "indeterminado":
                                     folder_final_nombre = deteccion
 
-                            emu_pandora = self.NORMALIZAR_CARPETA_PANDORA.get(folder_final_nombre, folder_final_nombre)
-                            ruta_destino_consola = os.path.join(ruta_destino, emu_pandora)
-                            os.makedirs(ruta_destino_consola, exist_ok=True)
+                            emu_pandora_sub = self.NORMALIZAR_CARPETA_PANDORA.get(folder_final_nombre, folder_final_nombre)
+                            ruta_destino_consola_sub = os.path.join(ruta_destino, emu_pandora_sub)
+                            os.makedirs(ruta_destino_consola_sub, exist_ok=True)
                             
-                            ruta_final_archivo = os.path.join(ruta_destino_consola, archivo_a_rescatar)
+                            ruta_final_archivo_sub = os.path.join(ruta_destino_consola_sub, archivo_a_rescatar)
 
-                            if not os.path.exists(ruta_final_archivo):
+                            if not os.path.exists(ruta_final_archivo_sub):
                                 try:
-                                    shutil.copy2(ruta_orig_file, ruta_final_archivo)
+                                    shutil.copy2(ruta_orig_file, ruta_final_archivo_sub)
                                     rescatados += 1
                                     if ext_actual == '.bin' and os.path.exists(ruta_orig_file.replace('.bin', '.cue').replace('.BIN', '.CUE')):
                                         continue
                                     self.log(f"Inyectando: {archivo_a_rescatar}")
-                                    juegos_indexados.append((emu_pandora, archivo_a_rescatar))
+                                    juegos_indexados.append((emu_pandora_sub, archivo_a_rescatar))
                                 except Exception as e:
                                     self.log(f"⚠️ Error en transferencia: {e}")
                             else:
                                 if not (ext_actual == '.bin' and os.path.exists(ruta_orig_file.replace('.bin', '.cue').replace('.BIN', '.CUE'))):
-                                    juegos_indexados.append((emu_pandora, archivo_a_rescatar))
+                                    juegos_indexados.append((emu_pandora_sub, archivo_a_rescatar))
 
+                        # Borrado seguro de subcarpetas vacías
                         try:
                             if os.path.exists(ruta_subcarpeta) and not os.listdir(ruta_subcarpeta):
                                 os.rmdir(ruta_subcarpeta)
