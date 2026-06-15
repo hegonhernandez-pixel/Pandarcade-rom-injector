@@ -20,6 +20,14 @@ def aplicar_estilo_arcade(root):
     # Crear el objeto de estilos de TTK
     style = ttk.Style()
     style.theme_use('default') # Usamos el tema base para poder modificar todo
+
+    # Botón de apoyo/donación para saltar el límite de 25 juegos
+       self.btn_premium = ttk.Button(
+           root, # O el contenedor/frame que estés usando en tu diseño
+           text="Apoyar Proyecto (Quitar Límite)", 
+           command=self.abrir_paypal)
+        # Lo posicionas en tu interfaz usando pack(), grid() o place() según tu diseño
+        self.btn_premium.pack(pady=10) 
     
     # 🏢 ESTILO DEL CONTENEDOR (Notebook / Pestañas)
     style.configure("TNotebook", background=COLOR_FONDO, borderwidth=0)
