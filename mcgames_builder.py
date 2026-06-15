@@ -28,8 +28,10 @@ class PandoraUniversalManager:
         }
 
     def log(self, mensaje):
-        if self.log_callback: self.log_callback(mensaje)
-        else: print(mensaje)
+        if self.log_callback: 
+            self.log_callback(mensaje)
+        else: 
+            print(mensaje)
 
     def _analizar_cabecera_binaria_segura(self, ruta_archivo):
         """
@@ -66,8 +68,7 @@ class PandoraUniversalManager:
         except:
             pass
         return "indeterminado"
-
-def purgar_y_extraer_en_crudo(self, ruta_origen, ruta_destino):
+    def purgar_y_extraer_en_crudo(self, ruta_origen, ruta_destino):
         if not os.path.exists(ruta_origen) or not os.path.exists(ruta_destino):
             self.log("❌ Error: Rutas inválidas.")
             return "error"
@@ -200,26 +201,3 @@ def purgar_y_extraer_en_crudo(self, ruta_origen, ruta_destino):
             return "limite_demo" if limite_alcanzado else "exito"
         return "vacio"
 
-    def _guardar_txt_pandora(self, ruta, datos):
-        lineas = []
-        for emu, archivo in datos:
-            nombre, _ = os.path.splitext(archivo)
-            nombre_limpio = nombre.replace("|", "-").strip()
-            lineas.append(f"{emu}_{nombre_limpio}|{emu}|{nombre_limpio}|{emu}/{archivo}\n")
-        with open(os.path.join(ruta, "mcgames.txt"), "w", encoding="utf-8") as f:
-            f.writelines(lineas)
-
-    def _guardar_xml_universal(self, ruta, datos):
-        root = ET.Element("gameList")
-        for emu, archivo in datos:
-            game_node = ET.SubElement(root, "game")
-            path_node = ET.SubElement(game_node, "path")
-            path_node.text = f"./{emu}/{archivo}"
-            nombre, _ = os.path.splitext(archivo)
-            name_node = ET.SubElement(game_node, "name")
-            name_node.text = nombre.replace("_", " ").strip()
-            desc_node = ET.SubElement(game_node, "desc")
-            desc_node.text = "Optimizado por motor de inyeccion automatica universal."
-        xml_str = minidom.parseString(ET.tostring(root, 'utf-8')).toprettyxml(indent="  ")
-        with open(os.path.join(ruta, "gamelist.xml"), "w", encoding="utf-8") as f:
-            f.write(xml_str)
