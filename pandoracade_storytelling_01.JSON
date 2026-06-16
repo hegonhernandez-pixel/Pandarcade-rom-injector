@@ -1,0 +1,27 @@
+{
+  "project_name": "pandoracade_storytelling_01",
+  "aspect_ratio": "16:9",
+  "ai_voice_profile": "Adam_Professional_Deep_Nostalgic",
+  "bgm_style": "Synthwave_Dark_Cyberpunk_Loop",
+  "visual_style": "Retro_Arcade_CRT_Scanlines",
+  "chapters": [
+    {
+      "title": "El Fraude Chino",
+      "duration_sec": 120,
+      "tone": "Aggressive_Reveal",
+      "visual_prompt": "Cinematic slow pan over a dusty arcade cabinet dashboard. Glitch matrix codes overlay. Text on screen: 50,000 JUEGOS EN 1: LA GRAN MENTIRA."
+    },
+    {
+      "title": "El Laberinto de las BIOS",
+      "duration_sec": 210,
+      "tone": "Technical_Masterclass",
+      "visual_prompt": "Screen recording emulation of Windows file explorer separating .bin and .cue files. Neon cyan glowing arrows organizing folders into games/data/download."
+    },
+    {
+      "title": "La Joya: Killer Instinct",
+      "duration_sec": 150,
+      "tone": "Epic_Hype",
+      "visual_prompt": "Ultra crisp capture of Killer Instinct arcade gameplay, camera zooming into Fulgore combo. Overlay text: EL PODER DEL CHD REVELADO."
+    }
+  ]
+}
