@@ -1,0 +1,51 @@
+<!-- SECCIÓN INTERACTIVA DE BÚSQUEDA (Añadir debajo del Header en tu HTML) -->
+    <div class="contenedor" style="margin-bottom: 0; margin-top: 15px;">
+        <div style="background-color: var(--bg-tarjeta); padding: 15px; border-radius: 8px; border: 1px dashed var(--neon-cian);">
+            <span style="color: var(--neon-cian); font-family: 'Consolas', monospace; font-size: 0.85rem; display: block; margin-bottom: 5px;">[root@pandarcade-lab]$ ./buscar_falla.sh</span>
+            <input type="text" id="buscadorTerminal" placeholder="Escribe tu problema... (ej: V9, KOF, CHD, Stick)" 
+                   style="width: 100%; background-color: var(--bg-principal); color: var(--neon-verde); border: 1px solid #2d2d3d; padding: 10px; font-family: 'Consolas', monospace; font-size: 1rem; border-radius: 4px; outline: none;">
+            <p id="contadorResultados" style="font-size: 0.8rem; color: var(--texto-oscuro); margin-top: 5px; font-family: 'Consolas', monospace;"></p>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE INTELIGENCIA Y DISEÑO AUTOMÁTICO -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const buscador = document.getElementById("buscadorTerminal");
+            const tarjetas = document.querySelectorAll(".tarjeta-tutorial");
+            const contador = document.getElementById("contadorResultados");
+
+            buscador.addEventListener("input", (e) => {
+                const busqueda = e.target.value.toLowerCase().trim();
+                let encontrados = 0;
+
+                tarjetas.forEach((tarjeta) => {
+                    // Analiza todo el texto interno de la tarjeta (título, pasos, alertas)
+                    const contenidoTexto = tarjeta.textContent.toLowerCase();
+
+                    if (contenidoTexto.includes(busqueda)) {
+                        // El diseño se auto-muestra y genera un destello cian de confirmación
+                        tarjeta.style.display = "block";
+                        tarjeta.style.transition = "all 0.3s ease";
+                        tarjeta.style.boxShadow = "0 0 10px rgba(0, 240, 255, 0.2)";
+                        encontrados++;
+                    } else {
+                        // El diseño se auto-oculta y reduce el espacio automáticamente
+                        tarjeta.style.display = "none";
+                        tarjeta.style.boxShadow = "none";
+                    }
+                });
+
+                // Feedback en tiempo real estilo consola de comandos
+                if (busqueda === "") {
+                    contador.textContent = "💻 Sistema listo. Esperando argumentos de búsqueda...";
+                    tarjetas.forEach(t => t.style.boxShadow = "none");
+                } else {
+                    contador.textContent = `⚡ Buscador IA: Se encontraron ${encontrados} módulos de taller compatibles.`;
+                }
+            });
+
+            // Inicializar el mensaje de la consola
+            contador.textContent = "💻 Sistema listo. Esperando argumentos de búsqueda...";
+        });
+    </script>
