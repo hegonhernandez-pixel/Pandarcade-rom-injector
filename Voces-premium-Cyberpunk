@@ -1,0 +1,70 @@
+import asyncio
+import os
+from edge_tts import Communicate
+
+# --- VOCES PREMIUM EN ESPAÑOL RECOMENDADAS ---
+# "es-MX-AlvaroNeural" -> Voz de hombre, profunda, ideal para documentales (Recomendada)
+# "es-MX-JorgeNeural"  -> Voz de hombre, tono de tutorial claro y directo
+VOZ_SELECCIONADA = "es-MX-AlvaroNeural"
+
+async def generar_audio_premium(texto, archivo_salida):
+    """
+    Utiliza el core neuronal avanzado de Microsoft de forma local
+    para generar una locución humana y fluida sin sonar robótica.
+    """
+    print(f"🎤 Procesando locución humana premium -> {archivo_salida}...")
+    communicate = Communicate(texto, VOZ_SELECCIONADA)
+    await communicate.save(archivo_salida)
+    print(f"[✅ EXCELENTE] Audio guardado con éxito en: {os.path.abspath(archivo_salida)}\n")
+
+def ejecutar_automatizacion():
+    print("=========================================================")
+    print(" 🛠️  CORE DE LOCUCIÓN NEURONAL AVANZADA: PANDARCADE ")
+    print("=========================================================\n")
+
+    # 📝 BLOQUE 1: REESCRITO PARA EVITAR TONO ROBÓTICO (EL GANCHO)
+    bloque_1 = (
+        "Te vendieron la fantasía nostálgica definitiva... Un tablero arcade premium, con cincuenta mil juegos en uno. "
+        "Te costó una fortuna, ¿verdad?... Pero la realidad es un golpe duro. De esos cincuenta mil juegos, con mucha suerte, "
+        "corren cien que son reales. El resto... es pura basura. Clones repetidos, roms corruptas hackeadas al aventón "
+        "y archivos tirados sin ningún control. Frustradas... miles de personas terminan dañando las tarjetas es-ed, "
+        "rompiendo los puertos de tanto mover los interruptores, o peor aún: arrumbando estas consolas en un rincón oscuro "
+        "de la casa, para dejarlas morir. ¡Hoy te digo que las saques!... Sácalas del clóset, límpiales el polvo y revívelas. "
+        "Porque en estos tiempos... lo viejo, es nuevo y novedoso."
+    )
+
+    # 📝 BLOQUE 2: EL MISTERIO TÉCNICO Y KILLER INSTINCT
+    bloque_2 = (
+        "Aquí es donde empieza la verdadera lata del modding. Los packs que bajas de internet son un caos absoluto. "
+        "Te avientan archivos punto zip que pertenecen a cinco consolas distintas, o extensiones punto bin y punto cue mezcladas, "
+        "sin saber si son pistas de PlayStation o bíos críticas del sistema. Si dejas las bíos en la memoria interna, "
+        "el juego se congela de inmediato. Pero el caso más brutal de todos... es Killer Instinct. Tiene casi treinta años de haber sido creado, "
+        "y visualmente... miren esto, ¡no le pide absolutamente nada a ningún juego actual! Es magnífico. Es una obra de arte. "
+        "Pero para que corra en estas consolas baratas con hardware mal optimizado, necesitas un truco. Tienes que emparejar su archivo zip "
+        "estrictamente con su archivo ce-ache-de, que es la imagen del disco duro original, colocada dentro de una subcarpeta específica. "
+        "Si no lo haces... prepárate para una eterna pantalla negra."
+    )
+
+    # 📝 BLOQUE 3: LA SOLUCIÓN Y TU PROPÓSITO
+    bloque_3 = (
+        "Como resolver todo esto a mano, limpiar archivos basura de menos de un megabyte y sincronizar las bases de datos "
+        "toma días enteros de frustración, decidí programar una solución definitiva para la comunidad: Pandarcade. "
+        "Este software automatiza todo el trabajo sucio por ti en un par de clics. Organiza las roms, inyecta las bíos recursivamente "
+        "en la ruta correcta y genera el archivo install punto te-equis-te listo para usar. Yo no cobro por mi trabajo. "
+        "Hago esto por pura pasión al modding y a la ingeniería inversa. Debido a mi situación como paciente de Reumatología, "
+        "dedico mi tiempo libre a descifrar este hardware capado y ayudar a los demás. El programa es gratis, te permite pasar "
+        "veinticinco juegos al día y está listo para descargar en mi web. Si te sirve, un apoyo voluntario en mi PayPal me ayuda "
+        "a seguir generando contenido masivo. ¡Saquemos esos tableros del olvido y a jugar!"
+    )
+
+    # Correr el pipeline de los 3 archivos independientes
+    asyncio.run(generar_audio_premium(bloque_1, "audio_1_gancho.mp3"))
+    asyncio.run(generar_audio_premium(bloque_2, "audio_2_tecnico.mp3"))
+    asyncio.run(generar_audio_premium(bloque_3, "audio_3_solucion.mp3"))
+    
+    print("=========================================================")
+    print(" ✨ PROCESO AUTOMÁTICO TERMINADO: 3 AUDIOS NEURONALES LISTOS ")
+    print("=========================================================")
+
+if __name__ == "__main__":
+    ejecutar_automatizacion()
