@@ -82,80 +82,56 @@ class PandarcadeMainWindow:
         if ruta:
             self.ruta_origen_var.set(ruta)
 
-    def seleccionar_destino(self):
-        ruta = filedialog.askdirectory(title="Selecciona la partición o carpeta de tu Pandora Box")
-        if ruta:
-            self.ruta_destino_var.set(ruta)
+    def _guardar_txt_pandora(self, ruta_destino, juegos_indexados):
+        """Genera el archivo de texto de índices plano requerido por las consolas Pandora Box."""
+        try:
+            ruta_txt = os.path.join(ruta_destino, "rom_list.txt")
+            with open(ruta_txt, "w", encoding="utf-8") as f:
+                for emu, nombre_archivo in juegos_indexados:
+                    nombre_juego, _ = os.path.splitext(nombre_archivo)
+                    f.write(f"{emu}|{nombre_archivo}|{nombre_juego}\n")
+            self.log("📝 Base de datos rom_list.txt actualizada con éxito.")
+            
+            # 🔥 LLAMADA AUTOMÁTICA NATIVA AL INSTALADOR DE PANDORA 3D
+            self._guardar_install_txt_3d(ruta_destino, juegos_indexados)
+            
+        except Exception as e:
+            self.log(f"⚠️ No se pudo generar el índice TXT: {e}")
 
-    def actualizar_consola_log(self, mensaje):
-        """ Agrega texto en tiempo real a la caja negra de logs """
-        self.txt_log.insert(tk.END, f"{mensaje}\n")
-        self.txt_log.see(tk.END)  # Autoscroll automático al final
+    def _guardar_install_txt_3d(self, ruta_destino, juegos_indexados):
+        """Genera de forma automática el archivo install.txt requerido por Pandora 3D / Saga."""
+        try:
+            ruta_install = os.path.join(ruta_destino, "install.txt")
+            with open(ruta_install, "w", encoding="utf-8") as f:
+                for emu, nombre_archivo in juegos_indexados:
+                    nombre_juego, _ = os.path.splitext(nombre_archivo)
+                    
+                    # 🎮 DETECCIÓN Y PARÁMETROS ESPECIALES PARA KILLER INSTINCT (.CHD)
+                    if "killer" in nombre_juego.lower() and nombre_archivo.lower().endswith('.chd'):
+                        self.log(f"🎯 Configurando parámetros avanzados para Killer Instinct (.chd)")
+                        f.write(f"{emu},{nombre_archivo},{nombre_juego},1,MAME_HARDWARE_MIPS,LAUNCH_DIRECT_CHD\n")
+                    else:
+                        f.write(f"{emu},{nombre_archivo},{nombre_juego},0\n")
+                        
+            self.log("🔥 Archivo 'install.txt' para Pandora 3D generado automáticamente.")
+        except Exception as e:
+            self.log(f"⚠️ No se pudo generar el archivo install.txt: {e}")
 
-    def actualizar_barra_licencia(self):
-        """ Redibuja dinámicamente el color y el texto de la barra según el límite de 24h """
-        puede_continuar, mensaje_tiempo = self.manager.verificar_limite_tiempo()
-        
-        color_bg = "#39ff14" if puede_continuar else "#ff0055"
-        self.f_status.config(bg=color_bg)
-        self.lbl_status.config(bg=color_bg)
-        self.btn_donar.config(fg="#39ff14" if puede_continuar else "#ff0055")
-
-        if puede_continuar:
-            # resultado de verificar_limite_tiempo da los juegos ya usados en las últimas 24h
-            juegos_usados = mensaje_tiempo
-            restantes = self.manager.LIMITE_VERSION_FREE - juegos_usados
-            self.lbl_status.config(text=f"📶 MODO FREEMIUM: Disponibles hoy {restantes} de {self.manager.LIMITE_VERSION_FREE} juegos.")
-            self.btn_inyectar.config(state="normal", bg="#00f0ff")
-        else:
-            self.lbl_status.config(text=mensaje_tiempo)
-            self.btn_inyectar.config(state="disabled", bg="#555555")
-
-    def ejecutar_inyeccion_hilo(self):
-        """ Lanza la inyección en un hilo separado para que la ventana no se congele """
-        origen = self.ruta_origen_var.get()
-        destino = self.ruta_destino_var.get()
-
-        if not origen or not destino:
-            messagebox.showwarning("Rutas vacías", "Por favor, selecciona tanto la carpeta de origen como la de destino.")
-            return
-
-        # Desactivamos el botón temporalmente para evitar doble clic
-        self.btn_inyectar.config(state="disabled")
-        
-        # Creamos y arrancamos el hilo secundario de transferencia
-        hilo = threading.Thread(target=self._proceso_segundo_plano, args=(origen, destino), daemon=True)
-        hilo.start()
-
-    def _proceso_segundo_plano(self, origen, destino):
-        """ Corre la lógica pesada de mcgames_builder sin trabar los gráficos """
-        self.txt_log.delete("1.0", tk.END)  # Limpiar consola anterior
-        
-        # Ejecuta la inyección del backend
-        resultado = self.manager.purgar_y_extraer_en_crudo(origen, destino)
-
-        # Al terminar, actualizamos la GUI desde el hilo principal de forma segura
-        self.root.after(0, self.finalizar_proceso_gui, resultado)
-
-    def finalizar_proceso_gui(self, resultado):
-        """ Retorna el control a la pantalla y recarga el contador de bloqueos """
-        self.actualizar_barra_licencia()
-        
-        if resultado == "exito":
-            messagebox.showinfo("¡Inyección Completada!", "Tus ROMs se han procesado, purgado y listado con éxito.")
-        elif resultado == "limite_demo":
-            messagebox.showwarning("Límite alcanzado", "El proceso terminó de forma parcial porque alcanzaste el tope de la versión gratuita.")
-        elif resultado == "bloqueado":
-            messagebox.showerror("Acción Bloqueada", "No se transfirieron archivos. Por favor, espera a que expire el plazo diario.")
-        elif resultado == "vacio":
-            messagebox.showinfo("Proceso Terminado", "No se encontraron nuevas ROMs compatibles en el directorio origen.")
-
-    def abrir_paypal(self):
-        enlace_paypal = "https://paypal.com"
-        webbrowser.open(enlace_paypal)
-
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = PandarcadeMainWindow(root)
-    root.mainloop()
+    def _guardar_xml_universal(self, ruta_destino, juegos_indexados):
+        """Genera el XML de metadatos utilizando escrituras puras para no requerir librerías complejas."""
+        try:
+            ruta_xml = os.path.join(ruta_destino, "games_metadata.xml")
+            with open(ruta_xml, "w", encoding="utf-8") as f:
+                f.write('<?xml version="1.0" encoding="utf-8"?>\n')
+                f.write('<gameList>\n')
+                for emu, nombre_archivo in juegos_indexados:
+                    nombre_juego, _ = os.path.splitext(nombre_archivo)
+                    f.write('  <game>\n')
+                    f.write(f'    <path>./{emu}/{nombre_archivo}</path>\n')
+                    f.write(f'    <name>{nombre_juego}</name>\n')
+                    f.write(f'    <system>{emu}</system>\n')
+                    f.write('  </game>\n')
+                f.write('</gameList>\n')
+            self.log("📝 Metadatos estructurados games_metadata.xml actualizados.")
+        except Exception as e:
+            self.log(f"⚠️ No se pudo generar la base de datos XML: {e}")
