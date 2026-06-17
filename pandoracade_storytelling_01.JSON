@@ -1,27 +1,47 @@
-{
-  "project_name": "pandoracade_storytelling_01",
-  "aspect_ratio": "16:9",
-  "ai_voice_profile": "Adam_Professional_Deep_Nostalgic",
-  "bgm_style": "Synthwave_Dark_Cyberpunk_Loop",
-  "visual_style": "Retro_Arcade_CRT_Scanlines",
-  "chapters": [
-    {
-      "title": "El Fraude Chino",
-      "duration_sec": 120,
-      "tone": "Aggressive_Reveal",
-      "visual_prompt": "Cinematic slow pan over a dusty arcade cabinet dashboard. Glitch matrix codes overlay. Text on screen: 50,000 JUEGOS EN 1: LA GRAN MENTIRA."
-    },
-    {
-      "title": "El Laberinto de las BIOS",
-      "duration_sec": 210,
-      "tone": "Technical_Masterclass",
-      "visual_prompt": "Screen recording emulation of Windows file explorer separating .bin and .cue files. Neon cyan glowing arrows organizing folders into games/data/download."
-    },
-    {
-      "title": "La Joya: Killer Instinct",
-      "duration_sec": 150,
-      "tone": "Epic_Hype",
-      "visual_prompt": "Ultra crisp capture of Killer Instinct arcade gameplay, camera zooming into Fulgore combo. Overlay text: EL PODER DEL CHD REVELADO."
-    }
-  ]
-}
+javascript        // CONFIGURACIÓN DE TU COMPAÑÍA COMERCIAL
+        const API_URL_REMO_SERVER = "http://localhost:8000/v1/generate-video"; // Cambiar por la IP de tu servidor en internet
+        const TOKEN_CLIENTE_VIP = "user_vip_kinst_tk"; // Token que le darás a tus usuarios cuando paguen su mensualidad
+
+        document.getElementById("btnEnviarPrompt").addEventListener("click", async () => {
+            const promptTexto = document.getElementById("motorIA").value.trim();
+            const statusBox = document.getElementById("outputStatus");
+
+            if (!promptTexto) return;
+
+            statusBox.textContent = "> 📡 Enviando solicitud cifrada a Pandarcade Cloud Server...";
+
+            try {
+                const respuesta = await fetch(API_URL_REMO_SERVER, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Pandarcade-Token": TOKEN_CLIENTE_VIP // Validación de la pasarela de pago
+                    },
+                    body: JSON.stringify({ prompt: promptTexto })
+                });
+
+                if (!respuesta.ok) {
+                    const errorDatos = await respuesta.json();
+                    statusBox.textContent = `> ❌ ERROR EN SUSCRIPCIÓN: ${errorDatos.detail}`;
+                    return;
+                }
+
+                statusBox.textContent = "> 🔮 La GPU de Google aprobó tu pago y está renderizando el MP4...";
+                const datos = await respuesta.json();
+
+                if (datos.status === "success" && datos.videoBytes) {
+                    statusBox.textContent = `> ⚡ [ÉXITO] Video generado con éxito: ${datos.filename}`;
+                    
+                    # Convertir la respuesta Base64 de tu API en un archivo descargable de lujos
+                    const blob = await fetch(`data:video/mp4;base64,${datos.videoBytes}`).then(res => res.blob());
+                    const urlDescarga = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement("a");
+                    a.href = urlDescarga;
+                    a.download = datos.filename;
+                    a.click();
+                }
+            } catch (err) {
+                statusBox.textContent = `> ❌ Fallo crítico de conexión en la pasarela: ${err.message}`;
+            }
+        });
