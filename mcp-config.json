@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "pandarcade-video-studio": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--package",
+        "mcp-veo-go",
+        "mcp-veo-go",
+        "--transport",
+        "studio"
+      ],
+      "env": {
+        "PROJECT_ID": "inyector-video",
+        "LOCATION": "us-central1",
+        "IMAGE_CREATION_BUCKET": "inyector-video-genmedia"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "genmedia-producer",
+      "description": "Rutina avanzada que inyecta prompts multimedia directamente a Google Veo para calcular renders en masa.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "prompt": { "type": "string", "description": "Guión cinemático estilizado para el Short de YouTube (ej: KOF 2002 arcade style)" }
+        },
+        "required": ["prompt"]
+      }
+    },
+    {
+      "name": "genmedia-video-editor",
+      "description": "Agente local encargado de procesar la respuesta binaria en Base64, compilar los FPS y escupir el archivo .mp4 nativo.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "videoBytes": { "type": "string", "description": "Flujo de datos multimedia devuelto por la supercomputadora" },
+          "output_name": { "type": "string", "description": "Nombre de archivo final para la carpeta de Shorts" }
+        },
+        "required": ["videoBytes"]
+      }
+    }
+  ]
+}
