@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pantalla de Live — Pandarcade-LIFE</title>
+  <meta name="description" content="Pandarcade-LIFE: emulación, tutoriales y contenido wellness en video." />
+  <style>
+    :root{
+      --accent:#0f62fe;
+      --bg:#0b0b0f;
+      --card:#0f1720;
+      --muted:#9aa4b2;
+      color-scheme: dark;
+    }
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:linear-gradient(180deg,#071021 0%, #081226 100%);
+      color:#e6eef8;
+      -webkit-font-smoothing:antialiased;
+    }
+    header{
+      padding:28px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      border-bottom:1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .logo{
+      width:56px;height:56px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;
+      box-shadow:0 6px 18px rgba(15,98,254,0.14);
+    }
+    h1.site-title{
+      margin:0;
+      font-size:40px; /* TITULO MÁS GRANDE */
+      line-height:1;
+      letter-spacing:-0.02em;
+    }
+    nav a{
+      color:var(--muted);
+      text-decoration:none;
+      margin-left:12px;
+      font-weight:600;
+    }
+    main{
+      max-width:1100px;
+      margin:28px auto;
+      padding:20px;
+    }
+    .intro{
+      display:flex;
+      gap:24px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .hero{
+      flex:1 1 480px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:12px;
+      padding:20px;
+    }
+    .features{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:16px;
+      margin-top:18px;
+    }
+    .card{
+      background:var(--card);
+      padding:16px;
+      border-radius:10px;
+      box-shadow: 0 6px 24px rgba(2,6,23,0.5);
+    }
+    .card h3{margin:0 0 8px 0;}
+    .muted{color:var(--muted);font-size:0.95rem;}
+    .actions{margin-top:12px;}
+    .btn{
+      display:inline-block;
+      padding:8px 12px;
+      background:var(--accent);
+      color:white;border-radius:8px;text-decoration:none;font-weight:700;margin-right:8px;
+    }
+    footer{opacity:0.8;color:var(--muted);text-align:center;padding:24px 12px;margin-top:36px;}
+    @media (max-width:720px){
+      h1.site-title{font-size:28px;}
+      .logo{width:44px;height:44px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">PD</div>
+      <div>
+        <h1 class="site-title">Pantalla de Live</h1>
+        <div class="muted">Pandarcade-LIFE — Lo sano es pleno: música, salud y contenido</div>
+      </div>
+    </div>
+
+    <nav>
+      <a href="live.html">Live</a>
+      <a href="salud.html">Salud</a>
+      <a href="tutoriales.html">Tutoriales</a>
+      <a href="wellness.html">Video Wellness</a>
+      <a href="chat.html">Chat</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div class="hero card">
+        <h2>Bienvenido a Pantalla de Live</h2>
+        <p class="muted">Pandarcade-LIFE: emulación, tutoriales y bienestar en video. Aquí encontrarás recursos para cuidar tu cuerpo, aprender a restaurar consolas y recibir contenido audiovisual semanal.</p>
+
+        <div class="features">
+          <div class="card">
+            <h3>Salud</h3>
+            <p class="muted">Consejos, rutinas y contenido para cuidar tu salud física y mental, pensado para creadores y jugadores.</p>
+            <div class="actions"><a class="btn" href="salud.html">Ver salud</a></div>
+          </div>
+
+          <div class="card">
+            <h3>Video-Tutoriales</h3>
+            <p class="muted">Guías paso a paso sobre emulación, reparación y edición de vídeo. Ideal para aprender y aplicar de inmediato.</p>
+            <div class="actions"><a class="btn" href="tutoriales.html">Ver tutoriales</a></div>
+          </div>
+
+          <div class="card">
+            <h3>Video Wellness</h3>
+            <p class="muted">Contenido wellness en formato vídeo: respiración, estiramientos y pausas activas para creators.</p>
+            <div class="actions"><a class="btn" href="wellness.html">Ver wellness</a></div>
+          </div>
+        </div>
+      </div>
+
+      <aside style="flex:0 1 320px;">
+        <div class="card">
+          <h3>Sección de chat</h3>
+          <p class="muted">Conéctate con la comunidad o envía consultas. (Prototipo: página de chat independiente)</p>
+          <div class="actions"><a class="btn" href="chat.html">Ir al chat</a></div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <h3>Descargar inyector v1.0</h3>
+          <p class="muted">Herramientas de automatización local. Pasa hasta 200 ROMs gratis cada 24 horas.</p>
+          <div class="actions">
+            <a class="btn" href="https://github.com">Descargar</a>
+            <a class="btn" href="https://paypal.me" style="background:#0db67a;">Apoyar</a>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section style="margin-top:22px;">
+      <div class="card">
+        <h3>Sección de tutoriales destacados</h3>
+        <p class="muted">Próximamente: lista de tutoriales, videos y guías paso a paso.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Desarrollado con pasión por la emulación. Proyecto de código abierto — Pandarcade-LIFE.
+  </footer>
+</body>
+</html>
